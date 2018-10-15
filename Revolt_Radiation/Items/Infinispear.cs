@@ -19,8 +19,8 @@ namespace Revolt_Radiation.Items
 			item.damage = 15;
 			item.knockBack = 5f;
 			item.useStyle = 1;
-			item.useAnimation = 40;
-			item.useTime = 40;
+			item.useAnimation = 35;
+			item.useTime = 35;
 			item.width = 18;
 			item.height = 54;
 			item.maxStack = 1;

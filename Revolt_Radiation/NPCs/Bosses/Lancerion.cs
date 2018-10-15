@@ -52,6 +52,7 @@ namespace Revolt_Radiation.NPCs.Bosses
         public bool attack1 = false;
         public bool attack2 = false;
         public bool jump = false;
+        public bool throwingUp = false;
         public int wait = 0;
 
         public override void SetStaticDefaults()
@@ -76,8 +77,8 @@ namespace Revolt_Radiation.NPCs.Bosses
             music = MusicID.OldOnesArmy;
             musicPriority = MusicPriority.BossLow;
             npc.netAlways = true;
-
-            state = LancerionState.Following; // Set default/start AI state.
+            bossBag = mod.ItemType("LancerionBag");
+            state = LancerionState.Following;
         }
 
         public override void BossLoot(ref string name, ref int potionType)
@@ -138,35 +139,30 @@ namespace Revolt_Radiation.NPCs.Bosses
 
         public override void PostAI()
         {
+            npc.netUpdate = true;
             npc.TargetClosest(true);
             Player player = Main.player[npc.target];
-            if (!player.active || player.dead)
+            if (!npc.HasValidTarget)
             {
-                npc.TargetClosest(false);
-                player = Main.player[npc.target];
-                if (!player.active || player.dead)
+                npc.velocity *= 0f;
+                npc.alpha += 1;
+                despawnTimer++;
+                npc.spriteDirection = npc.direction;
+                Main.PlaySound(SoundID.Item24, (int)npc.position.X, (int)npc.position.Y);
+                Dust.NewDustDirect(npc.position, npc.width, npc.height / 2, 58, 0f, -5f, 100, default(Color), 1.5f);
+
+                if (despawnTimer == 255)
                 {
-                    npc.alpha += 1;
-                    despawnTimer++;
-                    npc.spriteDirection = npc.direction;
-                    Main.PlaySound(SoundID.Item24, (int)npc.position.X, (int)npc.position.Y);
-                    Dust.NewDustDirect(npc.position, npc.width, npc.height / 2, 58, 0f, -5f, 100, default(Color), 1.5f);
-
-                    if (despawnTimer == 255)
-                    {
-                        npc.active = false;
-                        Main.PlaySound(SoundID.Item6, (int)npc.position.X, (int)npc.position.Y);
-                        Dust.NewDustDirect(npc.position, npc.width, npc.height, 58, 0f, 0f, 0, default(Color), 1.5f);
-                    }
+                    npc.active = false;
+                    Main.PlaySound(SoundID.Item6, (int)npc.position.X, (int)npc.position.Y);
+                    Dust.NewDustDirect(npc.position, npc.width, npc.height, 58, 0f, 0f, 0, default(Color), 1.5f);
                 }
-
             }
 
             npc.rotation = npc.velocity.X * 0.03F;
             npc.spriteDirection = npc.direction;
 
-            if (npc.velocity.X >= 9)
-                npc.velocity.X = 9;
+            
             if (npc.life >= npc.lifeMax)
                 npc.life = npc.lifeMax;
 
@@ -175,6 +171,8 @@ namespace Revolt_Radiation.NPCs.Bosses
             if (state == LancerionState.Following)
             {
                 npc.width = 50;
+
+
 
                 if (timer == 200)
                 {
@@ -206,9 +204,17 @@ namespace Revolt_Radiation.NPCs.Bosses
                         {
                             Dust dust = Main.dust[Dust.NewDust(npc.position, npc.width, npc.height / 2, 12, 0f, -5f, 100, default(Color), 1.5f)];
                             dust.position = npc.Center + Vector2.UnitY.RotatedByRandom(4.1887903213500977) * new Vector2(npc.width * 1.5f, npc.height * 1.1f) * 0.8f * (0.8f + Main.rand.NextFloat() * 0.2f);
-                            // No longer need for an extra timer. Just use the one we already have.
-                            if ((timer - 600) % 30 == 0)
+                            if (timer < 700)
                             {
+                                if ((timer - 600) % 20 == 0)
+                                {
+                                    Main.PlaySound(SoundID.Item82, npc.Center);
+                                }
+                            }
+                            // No longer need for an extra timer. Just use the one we already have.
+                            else if ((timer - 700) % 20 == 0)
+                            {
+                                throwingUp = true;
                                 float perturbedSpeedX = player.Center.X - npc.Center.X;
                                 float perturbedSpeedY = player.Center.Y - npc.Center.Y;
                                 Projectile.NewProjectile(npc.Center.X, npc.Center.Y, perturbedSpeedX, perturbedSpeedY, mod.ProjectileType("LancerionSpear"), (int)(npc.damage * 0.50f), 2, Main.myPlayer);
@@ -263,13 +269,28 @@ namespace Revolt_Radiation.NPCs.Bosses
                     npc.velocity *= 0;
                 }
 
-                else if (timer > 250)
+                else if (timer == 250)
                 {
                     Main.PlaySound(SoundID.Item19, npc.Center);
-                    npc.velocity = player.Center - npc.Center;
+                    if (npc.direction == 1)
+                    {
+                        npc.velocity.X = 15;
+                    }
+                    if (npc.direction == -1)
+                    {
+                        npc.velocity.X = -15;
+                    }
+                    if (player.Center.Y - npc.Center.Y <= 0)
+                    {
+                        npc.velocity.Y = 1;
+                    }
+                    if (player.Center.Y - npc.Center.Y >= 0)
+                    {
+                        npc.velocity.Y = -1;
+                    }
                 }
 
-                else if (timer == 270)
+                else if (timer == 400)
                 {
                     state = LancerionState.Following;
                 }
@@ -373,27 +394,34 @@ namespace Revolt_Radiation.NPCs.Bosses
                 stompTry++;
 
                 npc.velocity.X = 0;
-                if (npc.velocity.Y == 0 && jump != true)
+                if (npc.velocity.Y == 0)
                 {
-                    npc.ai[0] = 5;
+                    npc.ai[0] = 3;
                 }
 
                 if (npc.ai[0] > 0)
                 {
-                    npc.velocity.Y -= 4f;
+                    npc.velocity.Y -= 5f;
                     npc.ai[0]--;
                 }
 
-                if (npc.collideY && jump == true && npc.velocity.Y > 0)
+                if (npc.collideY && npc.velocity.Y >= 0)
                 {
-                    npc.width.X = npc.position.X + (float)(npc.width / 2);
-                    npc.width.Y = npc.position.Y + (float)(npc.height / 2);
-                    for (int i = 0; i < 50; ++i)
+                    for (int k = 0; k < 8; k++)
                     {
-                        Main.PlaySound(SoundID.Item68, npc.Center);
-                        Dust.NewDustDirect(npc.position, npc.width, npc.height, 0, 0f, -10f, 0, default(Color), 1.5f);
-                        Dust.NewDustDirect(npc.position, npc.width, npc.height, 1, 0f, -10f, 0, default(Color), 1.5f);
+                        if (Main.player[k].active)
+                        {
+                            MyPlayer modPlayer = Main.player[k].GetModPlayer<MyPlayer>(mod);
+                            modPlayer.cameraShakeDur = 20;
+                            modPlayer.cameraShakeMagnitude = 5f;
+                        }
                     }
+                    if (Main.netMode != 1)
+                    {
+                        Projectile.NewProjectile(npc.Center.X, npc.Center.Y, 3f, -5f, mod.ProjectileType("LancerionStomp"), (int)(npc.damage * 0.50f), 2f, Main.myPlayer);
+                        Projectile.NewProjectile(npc.Center.X, npc.Center.Y, -3f, -5f, mod.ProjectileType("LancerionStomp"), (int)(npc.damage * 0.50f), 2f, Main.myPlayer);
+                    }
+                    Main.PlaySound(SoundID.Item66, npc.Center);
                     timer = 0;
                     state = LancerionState.Following;
                 }
@@ -480,6 +508,10 @@ namespace Revolt_Radiation.NPCs.Bosses
                 {
                     frame = 12;
                 }
+                if (despawnTimer > 0)
+                {
+                    frame = 12;
+                }
             }
         }
 
@@ -496,20 +528,25 @@ namespace Revolt_Radiation.NPCs.Bosses
             }
             if (state == LancerionState.Dashing)
             {
-                Texture2D texture = mod.GetTexture("NPCs/Bosses/Lancerion");
-                Vector2 afterPos = npc.position + new Vector2(texture.Width / 2, texture.Height / 2) - Main.screenPosition;
-                spriteBatch.Draw
-                (
-                texture,
-                afterPos,
-                new Rectangle(0, 0, texture.Width, texture.Height),
-                Color.White,
-                npc.rotation,
-                texture.Size(),
-                1f,
-                SpriteEffects.None,
-                200f
-                );
+                Vector2 drawOrigin = new Vector2(Main.npcTexture[npc.type].Width, npc.height);
+                for (int k = 0; k < npc.oldPos.Length; k++)
+                {
+                    Texture2D texture = mod.GetTexture("NPCs/Bosses/LancerionDash");
+                    Vector2 afterPos = npc.oldPos[k] - Main.screenPosition + drawOrigin + new Vector2(0f, npc.gfxOffY);
+                    spriteBatch.Draw
+                    (
+                    texture,
+                    afterPos,
+                    npc.frame,
+                    Color.White,
+                    npc.rotation,
+                    texture.Size(),
+                    1f,
+                    SpriteEffects.None,
+                    200f
+                    );
+                }
+                return true;
             }
             return true;
         }
@@ -542,4 +579,3 @@ namespace Revolt_Radiation.NPCs.Bosses
         }
     }
 }
-

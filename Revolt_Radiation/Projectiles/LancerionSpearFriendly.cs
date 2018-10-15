@@ -20,7 +20,7 @@ namespace Revolt_Radiation.Projectiles
 			projectile.aiStyle = 1;
 			projectile.penetrate = 2;
 			projectile.scale = 1.3f;
-            projectile.alpha = 75;
+            projectile.alpha = 125;
 			projectile.ownerHitCheck = true;
 			projectile.melee = true;
 			projectile.tileCollide = true;

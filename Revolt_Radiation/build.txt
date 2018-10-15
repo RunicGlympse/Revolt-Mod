@@ -2,6 +2,4 @@ author = RunicGlympse, Cooper, ShockedHorizon5
 version = 0.1
 displayName = [c/FFAA00:Revolt Mod (WIP)]
 buildIgnore = *.csproj, *.user, obj\*, bin\*, .vs\*
-hideCode = true
-hideResources = true
 includePDB = true

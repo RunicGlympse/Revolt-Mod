@@ -26,7 +26,7 @@ namespace Revolt_Radiation.Projectiles
             projectile.aiStyle = 1;
             projectile.alpha = 0;
             projectile.ignoreWater = true;
-            projectile.hostile = false;
+            projectile.friendly = true;
         }
 
         public override void AI()
