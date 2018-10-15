@@ -48,7 +48,7 @@ namespace Revolt_Radiation.Projectiles
                 }
             }
 
-            projectile.velocity -= 1f;
+            projectile.velocity *= 0.5f;
 
             if (projectile.ai[1] == 0f)
             {
